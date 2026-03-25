@@ -1,0 +1,217 @@
+/* Reset default styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Main app container with gradient background */
+.app {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #06b6d4 0%, #10b981 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+/* White card container */
+.container {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 600px;
+  padding: 40px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.header h1 {
+  font-size: 2.2rem;
+  color: #1e293b;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+/* Task form */
+.task-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+/* Task input field */
+.task-input {
+  flex: 1;
+  padding: 14px 18px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+/* Focus state for input */
+.task-input:focus {
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+/* Add task button */
+.add-button {
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #06b6d4 0%, #10b981 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Button hover effect */
+.add-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(6, 182, 212, 0.4);
+}
+
+/* Disabled button state */
+.add-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Scrollable task list container */
+.task-list {
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+/* Empty state message */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+  font-size: 1rem;
+}
+
+/* Individual task item */
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  background: #f8fafc;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+}
+
+/* Task item hover effect */
+.task-item:hover {
+  background: #e0f2fe;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.15);
+}
+
+/* Task content wrapper (checkbox + text) */
+.task-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Custom checkbox styling */
+.task-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  accent-color: #009688;
+}
+
+/* Task text */
+.task-title {
+  flex: 1;
+  color: #1e293b;
+  font-size: 0.95rem;
+  word-break: break-word;
+  min-width: 0;
+  transition: all 0.2s ease;
+}
+
+/* Completed task styling */
+.task-title.completed {
+  text-decoration: line-through;
+  color: #94a3b8;
+  opacity: 0.7;
+}
+
+/* Delete button styling */
+.delete-button {
+  background: #fff1f2;
+  border: 1px solid #ffe4e6;
+  color: #f43f5e;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+/* Delete button hover effect */
+.delete-button:hover {
+  background: #ffe4e6;
+  border-color: #fecdd3;
+  color: #e11d48;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 2px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+/* Responsive design for mobile */
+@media (max-width: 600px) {
+  .container {
+    padding: 30px 20px;
+  }
+
+  .header h1 {
+    font-size: 1.9rem;
+  }
+
+  .task-form {
+    flex-direction: column;
+  }
+
+  .add-button {
+    width: 100%;
+  }
+}
