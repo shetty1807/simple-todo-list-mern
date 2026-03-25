@@ -1,0 +1,27 @@
+name: TestNeo CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  testneo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Run TestNeo CI
+        run: |
+          echo "Trigger TestNeo"
+
+          curl -X POST "${{ secrets.TESTNEO_SERVER }}/api/web/v1/ci/trigger" \
+          -H "X-API-Key: ${{ secrets.TESTNEO_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "project_id": "'"${{ secrets.TESTNEO_PROJECT_ID }}"'",
+            "branch": "main",
+            "triggered_by": "github_actions"
+          }'
