@@ -1,0 +1,16 @@
+stages:
+  - build
+
+build_job:
+  stage: build
+  image: node:18
+  script:
+    - echo "Installing server dependencies"
+    - cd server
+    - npm install
+    - cd ..
+    - echo "Installing client dependencies"
+    - cd client
+    - npm install
+    - cd ..
+    - echo "GitLab CI completed"
