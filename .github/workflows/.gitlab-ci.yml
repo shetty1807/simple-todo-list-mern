@@ -1,0 +1,11 @@
+stages:
+  - build
+
+build_job:
+  stage: build
+  image: node:18
+
+  script:
+    - echo "Running GitLab CI"
+    - npm install
+    - echo "Build done"
