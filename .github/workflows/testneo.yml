@@ -82,7 +82,32 @@ jobs:
             libcups2 libdrm2 libdbus-1-3 libxkbcommon0 libxcomposite1 \
             libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 \
             libcairo2 libasound2t64 libatspi2.0-0 libxshmfence1
+      - name: Check secrets presence
+        env:
+          TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
+          TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
+          TESTNEO_PROJECT_ID: ${{ secrets.TESTNEO_PROJECT_ID }}
+        run: |
+          if [ -z "$TESTNEO_SERVER" ]; then
+            echo "TESTNEO_SERVER is missing"
+            exit 1
+          else
+            echo "TESTNEO_SERVER is present"
+          fi
 
+          if [ -z "$TESTNEO_API_KEY" ]; then
+            echo "TESTNEO_API_KEY is missing"
+            exit 1
+          else
+            echo "TESTNEO_API_KEY is present"
+          fi
+
+          if [ -z "$TESTNEO_PROJECT_ID" ]; then
+            echo "TESTNEO_PROJECT_ID is missing"
+            exit 1
+          else
+            echo "TESTNEO_PROJECT_ID is present"
+          fi
       - name: Download TestNeo Agent & Engine Bundle
         env:
           TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
