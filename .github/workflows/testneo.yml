@@ -87,7 +87,7 @@ jobs:
           TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
           TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
         run: |
-          echo "Downloading TestNeo agent from server..."
+          echo ":inbox_tray: Downloading TestNeo agent from server..."
 
           curl -f -H "X-API-Key: $TESTNEO_API_KEY" \
             "$TESTNEO_SERVER/api/web/v1/ci/agent-files/agent.py" \
@@ -97,22 +97,29 @@ jobs:
             "$TESTNEO_SERVER/api/web/v1/ci/agent-files/batch_publisher.py" \
             -o batch_publisher.py
 
-          echo "Downloading TestNeo engine bundle..."
-
-          curl -L \
-            -H "X-API-Key: $TESTNEO_API_KEY" \
-            "$TESTNEO_SERVER/api/web/v1/agents/download-bundle?api_key=$TESTNEO_API_KEY" \
+          echo ":package: Downloading TestNeo engine bundle..."
+          curl -f "$TESTNEO_SERVER/api/web/v1/agents/download-bundle?api_key=$TESTNEO_API_KEY" \
             -o testneo-engine-bundle.zip
 
-          echo "Check file size"
-          ls -lh testneo-engine-bundle.zip
+          echo ":package: Extracting engine bundle..."
+          unzip -qo testneo-engine-bundle.zip
+          rm testneo-engine-bundle.zip
 
-          echo "Check file type"
-          file testneo-engine-bundle.zip || true
+          if [ ! -f agent.py ] || [ ! -f batch_publisher.py ]; then
+            echo ":x: Failed to download agent files"
+            exit 1
+          fi
 
-          echo "Extracting..."
-          unzip -o testneo-engine-bundle.zip
+          if [ ! -d app/web_automation ]; then
+            echo ":x: Failed to extract engine bundle (app/web_automation/ missing)"
+            exit 1
+          fi
 
+          echo ":white_check_mark: Agent + Engine ready:"
+          ls -lh agent.py batch_publisher.py
+          echo ":open_file_folder: Engine modules:"
+          find app/web_automation -name "*.py" | head -20
+          echo " ... $(find app/web_automation -name '*.py' | wc -l) total .py files"
       - name: Trigger TestNeo CI Job
         id: trigger
         env:
