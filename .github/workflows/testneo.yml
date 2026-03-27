@@ -111,7 +111,7 @@ jobs:
           fi
 
           if [ ! -d app/web_automation ]; then
-            echo ":x: Failed to extract engine bundle (app/web_automation/ missing)"
+            echo ":x: Failed to extract engine bundle"
             exit 1
           fi
 
