@@ -82,6 +82,7 @@ jobs:
             libcups2 libdrm2 libdbus-1-3 libxkbcommon0 libxcomposite1 \
             libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 \
             libcairo2 libasound2t64 libatspi2.0-0 libxshmfence1
+
       - name: Download TestNeo Agent & Engine Bundle
         env:
           TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
@@ -111,7 +112,7 @@ jobs:
           fi
 
           if [ ! -d app/web_automation ]; then
-            echo ":x: Failed to extract engine bundle"
+            echo ":x: Failed to extract engine bundle (app/web_automation/ missing)"
             exit 1
           fi
 
@@ -120,6 +121,7 @@ jobs:
           echo ":open_file_folder: Engine modules:"
           find app/web_automation -name "*.py" | head -20
           echo " ... $(find app/web_automation -name '*.py' | wc -l) total .py files"
+
       - name: Trigger TestNeo CI Job
         id: trigger
         env:
@@ -169,8 +171,8 @@ jobs:
             exit 1
           fi
 
-          JOB_ID=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")
-          TOTAL_TESTS=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin)['total_tests'])")
+          JOB_ID=$(echo "$BODY" | python3 -c "import sys, json; print(json.load(sys.stdin)['job_id'])")
+          TOTAL_TESTS=$(echo "$BODY" | python3 -c "import sys, json; print(json.load(sys.stdin)['total_tests'])")
 
           echo ":white_check_mark: Job triggered: $JOB_ID ($TOTAL_TESTS tests)"
           echo "JOB_ID=$JOB_ID" >> "$GITHUB_OUTPUT"
