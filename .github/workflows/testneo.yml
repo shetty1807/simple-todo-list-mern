@@ -83,12 +83,12 @@ jobs:
             libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 \
             libcairo2 libasound2t64 libatspi2.0-0 libxshmfence1
 
-      - name: Download TestNeo Agent & Engine Bundle
+          - name: Download TestNeo Agent & Engine Bundle
         env:
           TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
           TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
         run: |
-          echo ":inbox_tray: Downloading TestNeo agent from server..."
+          echo "Downloading TestNeo agent from server..."
 
           curl -f -H "X-API-Key: $TESTNEO_API_KEY" \
             "$TESTNEO_SERVER/api/web/v1/ci/agent-files/agent.py" \
@@ -98,13 +98,25 @@ jobs:
             "$TESTNEO_SERVER/api/web/v1/ci/agent-files/batch_publisher.py" \
             -o batch_publisher.py
 
-          echo ":package: Downloading TestNeo engine bundle..."
-          curl -f "$TESTNEO_SERVER/api/web/v1/agents/download-bundle?api_key=$TESTNEO_API_KEY" \
+          echo "Downloading TestNeo engine bundle..."
+          curl -L -H "X-API-Key: $TESTNEO_API_KEY" \
+            -D headers.txt \
+            "$TESTNEO_SERVER/api/web/v1/agents/download-bundle" \
             -o testneo-engine-bundle.zip
 
-          echo ":package: Extracting engine bundle..."
+          echo "Response headers:"
+          cat headers.txt
+
+          echo "Downloaded file type:"
+          file testneo-engine-bundle.zip || true
+
+          echo "First 300 characters of downloaded file:"
+          head -c 300 testneo-engine-bundle.zip || true
+          echo ""
+
+          echo "Extracting engine bundle..."
           unzip -qo testneo-engine-bundle.zip
-          rm testneo-engine-bundle.zip
+          rm -f testneo-engine-bundle.zip headers.txt
 
           if [ ! -f agent.py ] || [ ! -f batch_publisher.py ]; then
             echo ":x: Failed to download agent files"
