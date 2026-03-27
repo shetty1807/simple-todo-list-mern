@@ -53,7 +53,7 @@ testneo:
         -e TESTNEO_API_KEY="$TESTNEO_API_KEY" \
         -e CI_JOB_ID="$JOB_ID" \
         -e TESTNEO_WORKERS="$TESTNEO_WORKERS" \
-        testneo/ci-runner:latest
+       ghcr.io/testneo/ci-runner:latest
 
   timeout: 30m
 
