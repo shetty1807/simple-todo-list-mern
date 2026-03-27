@@ -1,238 +1,224 @@
 name: TestNeo ci
+
 on:
-  push:
-    branches: [ main, staging, develop, testneoDevWebApiVSCodeExt ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
-    inputs:
-      tags:
-        description: 'Test tags (comma-separated, e.g. "smoke,sanity" or "regression"). Default: cicd'
-        required: false
-        default: 'cicd'
-      build_number:
-        description: 'Build number/version (e.g. "Build 2.1", "v2.1.0"). Auto-generated from branch+SHA if empty.'
-        required: false
-        default: ''
-      release_name:
-        description: 'Release name (e.g. "Release 3.0", "Sprint-42"). Auto-generated from branch if empty.'
-        required: false
-        default: ''
+  push:
+    branches: [main, staging, develop, testneoDevWebApiVSCodeExt]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Test tags (comma-separated, e.g. "smoke,sanity" or "regression"). Default: cicd'
+        required: false
+        default: 'cicd'
+      build_number:
+        description: 'Build number/version (e.g. "Build 2.1", "v2.1.0"). Auto-generated from branch+SHA if empty.'
+        required: false
+        default: ''
+      release_name:
+        description: 'Release name (e.g. "Release 3.0", "Sprint-42"). Auto-generated from branch if empty.'
+        required: false
+        default: ''
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 90  # Increased for 100+ test suites
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
 
-    env:
-      # CI/CD Optimization for 100+ tests
-      TESTNEO_MAX_WORKERS: "4"        # 4 parallel browsers (safe on 7GB RAM)
-      TESTNEO_BATCH_SIZE: "10"        # Publish results every 10 tests
-      TESTNEO_TEST_TIMEOUT: "600"     # 10 min max per test
-      SKIP_RESOURCE_CHECK: "true"     # Skip resource checks in CI
-      TESTNEO_AGENT_MODE: "true"      # Skip DB/model imports in engine bundle
-      AGENT_MODE: "true"              # Legacy flag (some code checks this)
+    env:
+      TESTNEO_MAX_WORKERS: "4"
+      TESTNEO_BATCH_SIZE: "10"
+      TESTNEO_TEST_TIMEOUT: "600"
+      SKIP_RESOURCE_CHECK: "true"
+      TESTNEO_AGENT_MODE: "true"
+      AGENT_MODE: "true"
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-      - name: Install dependencies
-        run: |
-          echo ":package: Installing TestNeo agent dependencies..."
+      - name: Install dependencies
+        run: |
+          echo ":package: Installing TestNeo agent dependencies..."
 
-          pip install --upgrade pip
+          pip install --upgrade pip
 
-          # Core CI runner dependencies (needed before bundle extraction)
-          pip install \
-            "playwright>=1.40.0" \
-            psutil \
-            "python-dotenv==1.0.0" \
-            "requests==2.32.3" \
-            "httpx==0.25.2" \
-            "pydantic>=2.0" \
-            "pydantic-settings>=2.0" \
-            "sqlalchemy>=1.4,<2.0" \
-            "aiofiles>=23.0" \
-            "openai>=1.0" \
-            "langchain>=0.2" \
-            "langchain-community>=0.2" \
-            "langgraph>=0.2,<0.3" \
-            "PyYAML>=6.0" \
-            "structlog>=23.0" \
-            "numpy>=1.24.0" \
-            "Pillow>=10.0" \
-            "groq>=0.4.0"
+          pip install \
+            "playwright>=1.40.0" \
+            psutil \
+            "python-dotenv==1.0.0" \
+            "requests==2.32.3" \
+            "httpx==0.25.2" \
+            "pydantic>=2.0" \
+            "pydantic-settings>=2.0" \
+            "sqlalchemy>=1.4,<2.0" \
+            "aiofiles>=23.0" \
+            "openai>=1.0" \
+            "langchain>=0.2" \
+            "langchain-community>=0.2" \
+            "langgraph>=0.2,<0.3" \
+            "PyYAML>=6.0" \
+            "structlog>=23.0" \
+            "numpy>=1.24.0" \
+            "Pillow>=10.0" \
+            "groq>=0.4.0"
 
-          # Install Chromium browser for Playwright
-          playwright install chromium
+          playwright install chromium
 
-          # Install project-specific dependencies if they exist
-          if [ -f requirements.txt ]; then
-            echo ":package: Installing project requirements.txt..."
-            pip install -r requirements.txt
-          fi
+          if [ -f requirements.txt ]; then
+            echo ":package: Installing project requirements.txt..."
+            pip install -r requirements.txt
+          fi
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
-            libcups2 libdrm2 libdbus-1-3 libxkbcommon0 libxcomposite1 \
-            libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 \
-            libcairo2 libasound2t64 libatspi2.0-0 libxshmfence1
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
+            libcups2 libdrm2 libdbus-1-3 libxkbcommon0 libxcomposite1 \
+            libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 \
+            libcairo2 libasound2t64 libatspi2.0-0 libxshmfence1
 
-      - name: Download TestNeo Agent & Engine Bundle
-        env:
-          TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
-          TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
-        run: |
-          echo ":inbox_tray: Downloading TestNeo agent from server..."
+      - name: Download TestNeo Agent & Engine Bundle
+        env:
+          TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
+          TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
+        run: |
+          echo ":inbox_tray: Downloading TestNeo agent from server..."
 
-          # 1. Download CI runner agent files (single source of truth)
-          curl -f -H "X-API-Key: $TESTNEO_API_KEY" \
-            "$TESTNEO_SERVER/api/web/v1/ci/agent-files/agent.py" \
-            -o agent.py
+          curl -f -H "X-API-Key: $TESTNEO_API_KEY" \
+            "$TESTNEO_SERVER/api/web/v1/ci/agent-files/agent.py" \
+            -o agent.py
 
-          curl -f -H "X-API-Key: $TESTNEO_API_KEY" \
-            "$TESTNEO_SERVER/api/web/v1/ci/agent-files/batch_publisher.py" \
-            -o batch_publisher.py
+          curl -f -H "X-API-Key: $TESTNEO_API_KEY" \
+            "$TESTNEO_SERVER/api/web/v1/ci/agent-files/batch_publisher.py" \
+            -o batch_publisher.py
 
-          # 2. Download engine bundle (NLP→Playwright engine + dependencies)
-          # Auth-gated: requires valid API key (UserAPIKey or Agent key)
-          echo ":package: Downloading TestNeo engine bundle..."
-          curl -f "$TESTNEO_SERVER/api/web/v1/agents/download-bundle?api_key=$TESTNEO_API_KEY" \
-            -o testneo-engine-bundle.zip
+          echo ":package: Downloading TestNeo engine bundle..."
+          curl -f "$TESTNEO_SERVER/api/web/v1/agents/download-bundle?api_key=$TESTNEO_API_KEY" \
+            -o testneo-engine-bundle.zip
 
-          # 3. Extract engine bundle (creates app/ directory with web_automation engine)
-          echo ":package: Extracting engine bundle..."
-          unzip -qo testneo-engine-bundle.zip
-          rm testneo-engine-bundle.zip
+          echo ":package: Extracting engine bundle..."
+          unzip -qo testneo-engine-bundle.zip
+          rm testneo-engine-bundle.zip
 
-          # 4. Verify everything is in place
-          if [ ! -f agent.py ] || [ ! -f batch_publisher.py ]; then
-            echo ":x: Failed to download agent files"
-            exit 1
-          fi
+          if [ ! -f agent.py ] || [ ! -f batch_publisher.py ]; then
+            echo ":x: Failed to download agent files"
+            exit 1
+          fi
 
-          if [ ! -d app/web_automation ]; then
-            echo ":x: Failed to extract engine bundle (app/web_automation/ missing)"
-            exit 1
-          fi
+          if [ ! -d app/web_automation ]; then
+            echo ":x: Failed to extract engine bundle (app/web_automation/ missing)"
+            exit 1
+          fi
 
-          echo ":white_check_mark: Agent + Engine ready:"
-          ls -lh agent.py batch_publisher.py
-          echo ":open_file_folder: Engine modules:"
-          find app/web_automation -name "*.py" | head -20
-          echo "  ... $(find app/web_automation -name '*.py' | wc -l) total .py files"
+          echo ":white_check_mark: Agent + Engine ready:"
+          ls -lh agent.py batch_publisher.py
+          echo ":open_file_folder: Engine modules:"
+          find app/web_automation -name "*.py" | head -20
+          echo " ... $(find app/web_automation -name '*.py' | wc -l) total .py files"
 
+      - name: Trigger TestNeo CI Job
+        id: trigger
+        env:
+          TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
+          TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
+          TESTNEO_PROJECT_ID: ${{ secrets.TESTNEO_PROJECT_ID }}
+        run: |
+          echo ":rocket: Triggering TestNeo CI job..."
 
+          BUILD_NUM="${{ github.event.inputs.build_number }}"
+          if [ -z "$BUILD_NUM" ]; then
+            SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-8)
+            BRANCH_CLEAN=$(echo "$GITHUB_REF_NAME" | tr '/' '-')
+            BUILD_NUM="ci-${BRANCH_CLEAN}-${SHORT_SHA}"
+          fi
 
-      - name: Trigger TestNeo CI Job
-        id: trigger
-        env:
-          TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
-          TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
-          TESTNEO_PROJECT_ID: ${{ secrets.TESTNEO_PROJECT_ID }}
-        run: |
-          echo ":rocket: Triggering TestNeo CI job..."
+          REL_NAME="${{ github.event.inputs.release_name }}"
+          if [ -z "$REL_NAME" ]; then
+            REL_NAME=$(echo "$GITHUB_REF_NAME" | tr '/' '-')
+          fi
 
-          # Build number: manual input > auto-generate from branch+SHA
-          BUILD_NUM="${{ github.event.inputs.build_number }}"
-          if [ -z "$BUILD_NUM" ]; then
-            SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-8)
-            BRANCH_CLEAN=$(echo "$GITHUB_REF_NAME" | tr '/' '-')
-            BUILD_NUM="ci-${BRANCH_CLEAN}-${SHORT_SHA}"
-          fi
+          echo "Build: $BUILD_NUM"
+          echo "Release: $REL_NAME"
 
-          # Release name: manual input > auto-generate from branch
-          REL_NAME="${{ github.event.inputs.release_name }}"
-          if [ -z "$REL_NAME" ]; then
-            REL_NAME=$(echo "$GITHUB_REF_NAME" | tr '/' '-')
-          fi
+          TAGS_INPUT="${{ github.event.inputs.tags }}"
+          if [ -z "$TAGS_INPUT" ]; then
+            TAGS='["cicd"]'
+          else
+            TAGS="[\"$(echo "$TAGS_INPUT" | sed 's/,/","/g')\"]"
+          fi
 
-          echo "Build: $BUILD_NUM"
-          echo "Release: $REL_NAME"
+          echo "Tags: $TAGS"
 
-          # Parse tags (manual input or default to "cicd")
-          TAGS_INPUT="${{ github.event.inputs.tags }}"
-          if [ -z "$TAGS_INPUT" ]; then
-            TAGS='["cicd"]'
-          else
-            # Convert comma-separated tags to JSON array: "smoke,sanity" -> ["smoke","sanity"]
-            TAGS="[\"$(echo "$TAGS_INPUT" | sed 's/,/","/g')\"]"
-          fi
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$TESTNEO_SERVER/api/web/v1/ci/trigger" \
+            -H "X-API-Key: $TESTNEO_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"project_id\": $TESTNEO_PROJECT_ID, \"tags\": $TAGS, \"branch\": \"$GITHUB_REF_NAME\", \"commit_sha\": \"$GITHUB_SHA\", \"triggered_by\": \"github_actions\", \"github_run_id\": \"$GITHUB_RUN_ID\", \"build_number\": \"$BUILD_NUM\", \"release_name\": \"$REL_NAME\"}")
 
-          echo "Tags: $TAGS"
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
 
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$TESTNEO_SERVER/api/web/v1/ci/trigger" \
-            -H "X-API-Key: $TESTNEO_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{\"project_id\": $TESTNEO_PROJECT_ID, \"tags\": $TAGS, \"branch\": \"$GITHUB_REF_NAME\", \"commit_sha\": \"$GITHUB_SHA\", \"triggered_by\": \"github_actions\", \"github_run_id\": \"$GITHUB_RUN_ID\", \"build_number\": \"$BUILD_NUM\", \"release_name\": \"$REL_NAME\"}")
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
 
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | sed '$d')
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo ":x: Trigger failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
 
-          echo "HTTP Status: $HTTP_CODE"
-          echo "Response: $BODY"
+          JOB_ID=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")
+          TOTAL_TESTS=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin)['total_tests'])")
 
-          if [ "$HTTP_CODE" -ge 400 ]; then
-            echo ":x: Trigger failed with HTTP $HTTP_CODE"
-            exit 1
-          fi
+          echo ":white_check_mark: Job triggered: $JOB_ID ($TOTAL_TESTS tests)"
+          echo "JOB_ID=$JOB_ID" >> "$GITHUB_OUTPUT"
+          echo "TOTAL_TESTS=$TOTAL_TESTS" >> "$GITHUB_OUTPUT"
 
-          JOB_ID=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")
-          TOTAL_TESTS=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin)['total_tests'])")
+      - name: Run TestNeo Tests
+        env:
+          TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
+          TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
+          TESTNEO_JOB_ID: ${{ steps.trigger.outputs.JOB_ID }}
+        run: |
+          echo ":test_tube: Running ${{ steps.trigger.outputs.TOTAL_TESTS }} tests..."
+          python3 agent.py
 
-          echo ":white_check_mark: Job triggered: $JOB_ID ($TOTAL_TESTS tests)"
-          echo "JOB_ID=$JOB_ID" >> $GITHUB_OUTPUT
-          echo "TOTAL_TESTS=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+      - name: Check Results
+        if: always() && steps.trigger.outputs.JOB_ID != ''
+        env:
+          TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
+          TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
+          JOB_ID: ${{ steps.trigger.outputs.JOB_ID }}
+        run: |
+          echo ":bar_chart: Fetching results for job $JOB_ID..."
 
-      - name: Run TestNeo Tests
-        env:
-          TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
-          TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
-          TESTNEO_JOB_ID: ${{ steps.trigger.outputs.JOB_ID }}
-        run: |
-          echo ":test_tube: Running ${{ steps.trigger.outputs.TOTAL_TESTS }} tests..."
-          python3 agent.py
+          RESPONSE=$(curl -s -w "\n%{http_code}" "$TESTNEO_SERVER/api/web/v1/ci/status/$JOB_ID" \
+            -H "X-API-Key: $TESTNEO_API_KEY")
 
-      - name: Check Results
-        if: always() && steps.trigger.outputs.JOB_ID != ''
-        env:
-          TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
-          TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
-          JOB_ID: ${{ steps.trigger.outputs.JOB_ID }}
-        run: |
-          echo ":bar_chart: Fetching results for job $JOB_ID..."
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
 
-          RESPONSE=$(curl -s -w "\n%{http_code}" "$TESTNEO_SERVER/api/web/v1/ci/status/$JOB_ID" \
-            -H "X-API-Key: $TESTNEO_API_KEY")
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo ":x: Failed to fetch results (HTTP $HTTP_CODE)"
+            echo "Response: $BODY"
+            exit 1
+          fi
 
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | sed '$d')
-
-          if [ "$HTTP_CODE" -ne 200 ]; then
-            echo ":x: Failed to fetch results (HTTP $HTTP_CODE)"
-            echo "Response: $BODY"
-            exit 1
-          fi
-
-          echo "$BODY" | python3 -c "
-          import sys, json
-          try:
-              d = json.load(sys.stdin)
-              print(f'Status: {d[\"status\"]}')
-              print(f'Passed: {d[\"passed\"]}')
-              print(f'Failed: {d[\"failed\"]}')
-              print(f'Total:  {d[\"total\"]}')
-              print(f':bar_chart: Report: $TESTNEO_SERVER/web/ci/report/$JOB_ID')
-              sys.exit(0 if d['failed'] == 0 else 1)
-          except json.JSONDecodeError as e:
-              print(f':x: Invalid JSON response: {e}')
-              sys.exit(1)
-          "
+          echo "$BODY" | python3 -c "
+          import sys, json
+          try:
+              d = json.load(sys.stdin)
+              print(f'Status: {d[\"status\"]}')
+              print(f'Passed: {d[\"passed\"]}')
+              print(f'Failed: {d[\"failed\"]}')
+              print(f'Total: {d[\"total\"]}')
+              print(f':bar_chart: Report: $TESTNEO_SERVER/web/ci/report/$JOB_ID')
+              sys.exit(0 if d['failed'] == 0 else 1)
+          except json.JSONDecodeError as e:
+              print(f':x: Invalid JSON response: {e}')
+              sys.exit(1)
+          "
