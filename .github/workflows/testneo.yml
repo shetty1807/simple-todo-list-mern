@@ -83,7 +83,7 @@ jobs:
             libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 \
             libcairo2 libasound2t64 libatspi2.0-0 libxshmfence1
 
-          - name: Download TestNeo Agent & Engine Bundle
+      - name: Download TestNeo Agent & Engine Bundle
         env:
           TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
           TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
@@ -104,17 +104,7 @@ jobs:
             "$TESTNEO_SERVER/api/web/v1/agents/download-bundle" \
             -o testneo-engine-bundle.zip
 
-          echo "Response headers:"
-          cat headers.txt
-
-          echo "Downloaded file type:"
-          file testneo-engine-bundle.zip || true
-
-          echo "First 300 characters of downloaded file:"
-          head -c 300 testneo-engine-bundle.zip || true
-          echo ""
-
-          echo "Extracting engine bundle..."
+          echo ":package: Extracting engine bundle..."
           unzip -qo testneo-engine-bundle.zip
           rm -f testneo-engine-bundle.zip headers.txt
 
