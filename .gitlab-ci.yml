@@ -1,5 +1,4 @@
 variables:
-  TESTNEO_TAGS: "smoke"
   TESTNEO_TAGS: ""
 
 stages:
@@ -30,9 +29,10 @@ testneo:
         }
         EOF
         )
-RESPONSE=$(curl -s -X POST "$TESTNEO_SERVER/api/ci/run" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TESTNEO_API_KEY" \
-  -d "$PAYLOAD")
 
-echo "$RESPONSE"
+        RESPONSE=$(curl -s -X POST "$TESTNEO_SERVER/api/ci/run" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $TESTNEO_API_KEY" \
+          -d "$PAYLOAD")
+
+        echo "$RESPONSE"
