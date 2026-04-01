@@ -29,6 +29,7 @@ testneo:
         }
         EOF
         )
+         - echo "SERVER=[$TESTNEO_SERVER]"
         RESPONSE=$(curl -v -X POST "$TESTNEO_SERVER/api/ci/run" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $TESTNEO_API_KEY" \
