@@ -24,14 +24,11 @@ testneo:
         echo "🧪 Running ALL tests"
       fi
 
-    # 1. Trigger CI job
-    - |
-      RESPONSE=$(curl -sf -X POST \
-        "$TESTNEO_SERVER/api/web/v1/ci/trigger" \
-        -H "X-API-Key: $TESTNEO_API_KEY" \
+      echo "Triggering TestNeo run..."
+      RESPONSE=$(curl -s -X POST "$TESTNEO_SERVER/api/ci/run" \
         -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $TESTNEO_API_KEY"
-        -d "{
+        -H "Authorization: Bearer $TESTNEO_API_KEY" \
+        -d "$PAYLOAD")
           \"project_id\": $TESTNEO_PROJECT_ID,
           \"tags\": $TAGS_JSON,
           \"branch\": \"$CI_COMMIT_REF_NAME\",
