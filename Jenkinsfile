@@ -29,23 +29,12 @@ pipeline {
 
         stage('Trigger TestNeo Run') {
             steps {
-                script {
-                    def tagsJson = '[]'
-                    if (params.TESTNEO_TAGS?.trim()) {
-                        def tags = params.TESTNEO_TAGS
-                            .split(',')
-                            .collect { "\"${it.trim()}\"" }
-                            .join(',')
-                        tagsJson = "[${tags}]"
-                    }
-
-                    bat """
-curl -X POST "%TESTNEO_SERVER%/api/ci/run" ^
-  -H "Authorization: Bearer %TESTNEO_API_KEY%" ^
-  -H "Content-Type: application/json" ^
-  -d "{\\"project_id\\": \\"%TESTNEO_PROJECT_ID%\\", \\"tags\\": ${tagsJson}, \\"workers\\": %TESTNEO_WORKERS%}"
+                bat """
+curl -X POST "https://api.testneo.ai/api/ci/run" ^
+ -H "Authorization: Bearer %TESTNEO_API_KEY%" ^
+ -H "Content-Type: application/json" ^
+ -d "{\\"project_id\\": \\"37\\"}"
 """
-                }
             }
         }
     }
