@@ -1,5 +1,5 @@
 variables:
-  TESTNEO_TAGS: "smoke"   # examples: smoke  OR  smoke,login
+  TESTNEO_TAGS: "smoke"
 
 stages:
   - test
@@ -13,26 +13,26 @@ testneo:
     - apk add --no-cache curl python3 jq
   script:
     - |
-      if [ -n "$TESTNEO_TAGS" ]; then
-        TAGS_JSON=$(echo "$TESTNEO_TAGS" | python3 -c 'import sys,json; print(json.dumps([t.strip() for t in sys.stdin.read().split(",") if t.strip()]))')
-        echo "Running tests with tags: $TESTNEO_TAGS"
-      else
-        TAGS_JSON="[]"
-        echo "Running all tests"
-      fi
+        if [ -n "$TESTNEO_TAGS" ]; then
+          TAGS_JSON=$(echo "$TESTNEO_TAGS" | python3 -c 'import sys,json; print(json.dumps([t.strip() for t in sys.stdin.read().split(",") if t.strip()]))')
+          echo "Running tests with tags: $TESTNEO_TAGS"
+        else
+          TAGS_JSON="[]"
+          echo "Running all tests"
+        fi
 
-      PAYLOAD=$(cat <<EOF
-      {
-        "project_id": $TESTNEO_PROJECT_ID,
-        "tags": $TAGS_JSON,
-        "branch": "$CI_COMMIT_REF_NAME"
-      }
-      EOF
-      )
+        PAYLOAD=$(cat <<EOF
+        {
+          "project_id": $TESTNEO_PROJECT_ID,
+          "tags": $TAGS_JSON,
+          "branch": "$CI_COMMIT_REF_NAME"
+        }
+        EOF
+        )
 
-     RESPONSE=$(curl -s -f -X POST "$TESTNEO_SERVER/api/ci/run" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TESTNEO_API_KEY" \
-  -d "$PAYLOAD")
+        RESPONSE=$(curl -s -f -X POST "$TESTNEO_SERVER/api/ci/run" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $TESTNEO_API_KEY" \
+          -d "$PAYLOAD")
 
-echo "$RESPONSE" | jq . || echo "$RESPONSE"
+        echo "$RESPONSE" | jq . || echo "$RESPONSE"
