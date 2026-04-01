@@ -40,3 +40,19 @@ testneo:
         -d "$PAYLOAD")
 
       echo "$RESPONSE" | jq .
+            echo "Triggering TestNeo run..."
+      RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$TESTNEO_SERVER/api/ci/run" \
+        -H "Content-Type: application/json" \
+        -d "$PAYLOAD")
+
+      echo "$RESPONSE"
+
+      STATUS=$(echo "$RESPONSE" | tail -n1 | sed 's/HTTP_STATUS://')
+      BODY=$(echo "$RESPONSE" | sed '$d')
+
+      echo "$BODY" | jq . || echo "$BODY"
+
+      if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 300 ]; then
+        echo "TestNeo API call failed with status $STATUS"
+        exit 1
+      fi
