@@ -1,5 +1,5 @@
 variables:
-  TESTNEO_TAGS: ""   # e.g. smoke or smoke,login
+  TESTNEO_TAGS: "smoke"   # examples: smoke  OR  smoke,login
 
 stages:
   - test
@@ -18,7 +18,7 @@ testneo:
         echo "Running tests with tags: $TESTNEO_TAGS"
       else
         TAGS_JSON="[]"
-        echo "Running ALL tests"
+        echo "Running all tests"
       fi
 
       PAYLOAD=$(cat <<EOF
@@ -30,10 +30,7 @@ testneo:
       EOF
       )
 
-      echo "Triggering TestNeo run..."
-      RESPONSE=$(curl -s -f -X POST "$TESTNEO_SERVER/api/ci/run" \
+      curl -s -f -X POST "$TESTNEO_SERVER/api/ci/run" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $TESTNEO_API_KEY" \
-        -d "$PAYLOAD")
-
-      echo "$RESPONSE" | jq . || echo "$RESPONSE"
+        -d "$PAYLOAD" | jq .
