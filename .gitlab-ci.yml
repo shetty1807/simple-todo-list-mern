@@ -30,6 +30,7 @@ testneo:
         "$TESTNEO_SERVER/api/web/v1/ci/trigger" \
         -H "X-API-Key: $TESTNEO_API_KEY" \
         -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $TESTNEO_API_KEY"
         -d "{
           \"project_id\": $TESTNEO_PROJECT_ID,
           \"tags\": $TAGS_JSON,
