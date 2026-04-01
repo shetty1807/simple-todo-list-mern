@@ -1,5 +1,6 @@
 variables:
   TESTNEO_TAGS: "smoke"
+  TESTNEO_TAGS: ""
 
 stages:
   - test
