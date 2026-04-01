@@ -1,7 +1,5 @@
-# Save as: .gitlab-ci.yml
 variables:
-  TESTNEO_TAGS: ""   # e.g. 'smoke' or 'smoke,login'
-  TESTNEO_WORKERS: "3"  # Parallel workers (default 3, max 10)
+  TESTNEO_TAGS: ""   # e.g. smoke or smoke,login
 
 stages:
   - test
@@ -14,44 +12,28 @@ testneo:
   before_script:
     - apk add --no-cache curl python3 jq
   script:
-    # Build tags JSON
     - |
       if [ -n "$TESTNEO_TAGS" ]; then
-        TAGS_JSON=$(echo "$TESTNEO_TAGS" | python3 -c "import sys,json; print(json.dumps([t.strip() for t in sys.stdin.read().strip().split(',')]))")
-        echo "🏷️  Running tests with tags: $TESTNEO_TAGS"
+        TAGS_JSON=$(echo "$TESTNEO_TAGS" | python3 -c 'import sys,json; print(json.dumps([t.strip() for t in sys.stdin.read().split(",") if t.strip()]))')
+        echo "Running tests with tags: $TESTNEO_TAGS"
       else
-        TAGS_JSON="null"
-        echo "🧪 Running ALL tests"
+        TAGS_JSON="[]"
+        echo "Running ALL tests"
       fi
 
+      PAYLOAD=$(cat <<EOF
+      {
+        "project_id": $TESTNEO_PROJECT_ID,
+        "tags": $TAGS_JSON,
+        "branch": "$CI_COMMIT_REF_NAME"
+      }
+      EOF
+      )
+
       echo "Triggering TestNeo run..."
-      RESPONSE=$(curl -s -X POST "$TESTNEO_SERVER/api/ci/run" \
+      RESPONSE=$(curl -s -f -X POST "$TESTNEO_SERVER/api/ci/run" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $TESTNEO_API_KEY" \
         -d "$PAYLOAD")
-          \"project_id\": $TESTNEO_PROJECT_ID,
-          \"tags\": $TAGS_JSON,
-          \"branch\": \"$CI_COMMIT_REF_NAME\",
-          \"commit_sha\": \"$CI_COMMIT_SHA\",
-          \"triggered_by\": \"gitlab_ci\",
-          \"pipeline_id\": \"$CI_PIPELINE_ID\"
-        }")
 
-    - JOB_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")
-    - TOTAL=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['total_tests'])")
-    - echo "✅ Job $JOB_ID — $TOTAL tests queued"
-
-    # 2. Run tests in Docker
-    - |
-      docker run --rm --shm-size=2g \
-        -e TESTNEO_SERVER="$TESTNEO_SERVER" \
-        -e TESTNEO_API_KEY="$TESTNEO_API_KEY" \
-        -e CI_JOB_ID="$JOB_ID" \
-        -e TESTNEO_WORKERS="$TESTNEO_WORKERS" \
-        testneo/ci-runner:latest
-
-  timeout: 30m
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_PIPELINE_SOURCE == "web"'
+      echo "$RESPONSE" | jq . || echo "$RESPONSE"
