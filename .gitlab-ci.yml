@@ -11,39 +11,30 @@ testneo:
     - docker:dind
   before_script:
     - apk add --no-cache curl python3 jq
- script:
-  - apk add --no-cache curl python3 jq
+  script:
+    - |
+        echo "Running all tests"
+        echo "SERVER=[$TESTNEO_SERVER]"
 
-  - echo "Running ALL tests"
-  - echo "SERVER=[$TESTNEO_SERVER]"
+        PAYLOAD=$(jq -n \
+          --arg project_id "$TESTNEO_PROJECT_ID" \
+          --arg branch "$CI_COMMIT_REF_NAME" \
+          --arg tags "$TESTNEO_TAGS" \
+          '{
+            project_id: $project_id,
+            branch: $branch,
+            tags: (if $tags == "" then [] else ($tags | split(",")) end)
+          }')
 
-  - |
-    PAYLOAD=$(jq -n \
-      --arg project_id "$TESTNEO_PROJECT_ID" \
-      --arg branch "$CI_COMMIT_REF_NAME" \
-      --arg tags "$TESTNEO_TAGS" \
-      '{
-        project_id: $project_id,
-        branch: $branch,
-        tags: ($tags | split(","))
-      }')
+        echo "Payload:"
+        echo "$PAYLOAD"
 
-    echo "Payload:"
-    echo "$PAYLOAD"
+        echo "Triggering TestNeo run..."
 
-    echo "Triggering TestNeo run..."
+        RESPONSE=$(curl -s "$TESTNEO_SERVER/api/ci/run" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $TESTNEO_API_KEY" \
+          -d "$PAYLOAD")
 
-    RESPONSE=$(curl -s "$TESTNEO_SERVER/api/ci/run" \
-      -H "Content-Type: application/json" \
-      -H "Authorization: Bearer $TESTNEO_API_KEY" \
-      -d "$PAYLOAD")
-
-    echo "Response:"
-    echo "$RESPONSE"
-         - echo "SERVER=[$TESTNEO_SERVER]"
-        RESPONSE=$(curl -v -X POST "$TESTNEO_SERVER/api/ci/run" \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $TESTNEO_API_KEY" \
-        -d "$PAYLOAD")
-
+        echo "Response:"
         echo "$RESPONSE"
