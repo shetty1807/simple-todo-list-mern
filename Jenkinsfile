@@ -34,23 +34,6 @@ curl -i -X POST "%TESTNEO_SERVER%/api/ci/run" ^
                 }
             }
         }
-
-        stage('Run Tests (Docker)') {
-            steps {
-                withCredentials([
-                    string(credentialsId: 'TESTNEO_SERVER', variable: 'TESTNEO_SERVER'),
-                    string(credentialsId: 'TESTNEO_API_KEY', variable: 'TESTNEO_API_KEY')
-                ]) {
-                    bat '''
-docker run --rm ^
- -e TESTNEO_SERVER=%TESTNEO_SERVER% ^
- -e TESTNEO_API_KEY=%TESTNEO_API_KEY% ^
- -e TESTNEO_WORKERS=%TESTNEO_WORKERS% ^
- testneo/ci-runner:latest
-'''
-                }
-            }
-        }
     }
 
     post {
