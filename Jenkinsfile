@@ -28,15 +28,15 @@ pipeline {
         }
 
         stage('Trigger TestNeo Run') {
-            steps {
-                bat """
-curl -X POST "https://api.testneo.ai/api/ci/run" ^
+    steps {
+        bat '''
+curl -X POST "%TESTNEO_SERVER%/api/ci/run" ^
  -H "Authorization: Bearer %TESTNEO_API_KEY%" ^
  -H "Content-Type: application/json" ^
- -d "{\\"project_id\\": \\"37\\"}"
-"""
-            }
-        }
+ -d "{\\"project_id\\":\\"%TESTNEO_PROJECT_ID%\\"}"
+'''
+    }
+}
     }
 
     post {
