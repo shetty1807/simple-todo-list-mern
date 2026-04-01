@@ -30,7 +30,9 @@ testneo:
       EOF
       )
 
-      curl -s -f -X POST "$TESTNEO_SERVER/api/ci/run" \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $TESTNEO_API_KEY" \
-        -d "$PAYLOAD" | jq .
+     RESPONSE=$(curl -s -f -X POST "$TESTNEO_SERVER/api/ci/run" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TESTNEO_API_KEY" \
+  -d "$PAYLOAD")
+
+echo "$RESPONSE" | jq . || echo "$RESPONSE"
