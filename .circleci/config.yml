@@ -4,7 +4,7 @@ version: 2.1
 parameters:
   testneo_tags:
     type: string
-    default: "smoke"
+    default: ""
   testneo_workers:
     type: string
     default: "3"
