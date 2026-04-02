@@ -1,25 +1,55 @@
-- run:
-    name: Run TestNeo Tests
-    command: |
-      echo "Running TestNeo..."
+version: 2.1
 
-      if [ -z "<< pipeline.parameters.testneo_tags >>" ]; then
-        echo "Running ALL tests"
-        curl -X POST "$TESTNEO_SERVER/api/v1/run" \
-          -H "Authorization: Bearer $TESTNEO_API_KEY" \
-          -H "Content-Type: application/json" \
-          -d "{
-            \"project_id\": $TESTNEO_PROJECT_ID,
-            \"workers\": << pipeline.parameters.testneo_workers >>
-          }"
-      else
-        echo "Running tests with tags: << pipeline.parameters.testneo_tags >>"
-        curl -X POST "$TESTNEO_SERVER/api/v1/run" \
-          -H "Authorization: Bearer $TESTNEO_API_KEY" \
-          -H "Content-Type: application/json" \
-          -d "{
-            \"project_id\": $TESTNEO_PROJECT_ID,
-            \"tags\": \"<< pipeline.parameters.testneo_tags >>\",
-            \"workers\": << pipeline.parameters.testneo_workers >>
-          }"
-      fi
+parameters:
+  testneo_tags:
+    type: string
+    default: ""
+  testneo_workers:
+    type: string
+    default: "3"
+
+jobs:
+  testneo-tests:
+    docker:
+      - image: cimg/base:stable
+    resource_class: medium
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get update
+
+      - run:
+          name: Run TestNeo Tests
+          command: |
+            echo "Running TestNeo..."
+
+            if [ -z "<< pipeline.parameters.testneo_tags >>" ]; then
+              echo "Running ALL tests"
+              curl -X POST "$TESTNEO_SERVER/api/v1/run" \
+                -H "Authorization: Bearer $TESTNEO_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d "{
+                  \"project_id\": $TESTNEO_PROJECT_ID,
+                  \"workers\": << pipeline.parameters.testneo_workers >>
+                }"
+            else
+              echo "Running tests with tags: << pipeline.parameters.testneo_tags >>"
+              curl -X POST "$TESTNEO_SERVER/api/v1/run" \
+                -H "Authorization: Bearer $TESTNEO_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d "{
+                  \"project_id\": $TESTNEO_PROJECT_ID,
+                  \"tags\": \"<< pipeline.parameters.testneo_tags >>\",
+                  \"workers\": << pipeline.parameters.testneo_workers >>
+                }"
+            fi
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - testneo-tests
