@@ -1,43 +1,143 @@
-name: TestNeo ci
+name: TestNeo Tests
 
 on:
   push:
     branches:
       - main
+      - staging
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
+    inputs:
+      tags:
+        description: "Test tags to run (comma-separated, e.g. smoke,login)"
+        required: false
+        default: ""
+      workers:
+        description: "Parallel workers (default 3, max 10)"
+        required: false
+        default: "3"
+
+env:
+  TESTNEO_TAGS: ""
 
 jobs:
   test:
+    name: TestNeo Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
+      TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
+      TESTNEO_PROJECT_ID: ${{ secrets.TESTNEO_PROJECT_ID }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.9
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Validate required secrets
         run: |
-          python -m pip install --upgrade pip
+          if [ -z "$TESTNEO_SERVER" ]; then
+            echo "TESTNEO_SERVER is missing"
+            exit 1
+          fi
 
-      - name: Setup
-        run: echo "Setup complete"
+          if [ -z "$TESTNEO_API_KEY" ]; then
+            echo "TESTNEO_API_KEY is missing"
+            exit 1
+          fi
 
-      - name: Check repository files
+          if [ -z "$TESTNEO_PROJECT_ID" ]; then
+            echo "TESTNEO_PROJECT_ID is missing"
+            exit 1
+          fi
+
+          echo "All required secrets are present"
+
+      - name: Prepare inputs
+        id: prep
+        shell: bash
         run: |
-          echo "Listing project files"
-          ls -la
+          TAGS_INPUT="${{ github.event.inputs.tags }}"
+          if [ -z "$TAGS_INPUT" ]; then
+            TAGS_INPUT="$TESTNEO_TAGS"
+          fi
 
-      - name: Skip TestNeo Agent Download
+          WORKERS_INPUT="${{ github.event.inputs.workers }}"
+          if [ -z "$WORKERS_INPUT" ]; then
+            WORKERS_INPUT="3"
+          fi
+
+          if [ -n "$TAGS_INPUT" ]; then
+            TAGS_JSON=$(python3 -c "import json; print(json.dumps([t.strip() for t in '''$TAGS_INPUT'''.split(',') if t.strip()]))")
+            echo "Running tests with tags: $TAGS_INPUT"
+          else
+            TAGS_JSON="null"
+            echo "Running all tests"
+          fi
+
+          echo "tags_json=$TAGS_JSON" >> "$GITHUB_OUTPUT"
+          echo "workers=$WORKERS_INPUT" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger TestNeo CI job
+        id: trigger
+        shell: bash
         run: |
-          echo "Skipping failing TestNeo download step"
+          echo "Triggering TestNeo CI job..."
 
-      - name: Simulate pipeline stage
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "$TESTNEO_SERVER/api/web/v1/ci/trigger" \
+            -H "X-API-Key: $TESTNEO_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"project_id\": $TESTNEO_PROJECT_ID,
+              \"tags\": ${{ steps.prep.outputs.tags_json }},
+              \"branch\": \"${{ github.ref_name }}\",
+              \"commit_sha\": \"${{ github.sha }}\",
+              \"triggered_by\": \"github_actions\"
+            }")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "TestNeo trigger failed"
+            exit 1
+          fi
+
+          JOB_ID=$(echo "$BODY" | python3 -c "import sys, json; print(json.load(sys.stdin)['job_id'])")
+          TOTAL=$(echo "$BODY" | python3 -c "import sys, json; print(json.load(sys.stdin)['total_tests'])")
+
+          echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
+          echo "total_tests=$TOTAL" >> "$GITHUB_OUTPUT"
+
+          echo "Job $JOB_ID created successfully"
+          echo "$TOTAL tests queued"
+
+      - name: Run TestNeo tests in Docker
+        shell: bash
         run: |
-          echo "Pipeline reached execution stage successfully"
+          echo "Running TestNeo tests..."
+          docker run --rm --shm-size=2g \
+            -e TESTNEO_SERVER="$TESTNEO_SERVER" \
+            -e TESTNEO_API_KEY="$TESTNEO_API_KEY" \
+            -e CI_JOB_ID="${{ steps.trigger.outputs.job_id }}" \
+            -e TESTNEO_WORKERS="${{ steps.prep.outputs.workers }}" \
+            testneo/ci-runner:latest
 
-      - name: Finish
-        run: echo "Pipeline completed successfully"
+      - name: Summary
+        if: always()
+        run: |
+          echo "Workflow finished"
+          echo "Job ID: ${{ steps.trigger.outputs.job_id }}"
+          echo "Total tests: ${{ steps.trigger.outputs.total_tests }}"
