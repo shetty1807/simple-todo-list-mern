@@ -41,22 +41,27 @@ jobs:
         run: |
           python -m pip install --upgrade pip
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl
+
       - name: Check secrets presence
         run: |
           echo "SERVER=[$TESTNEO_SERVER]"
           echo "PROJECT_ID=[$TESTNEO_PROJECT_ID]"
           echo "API_KEY_LENGTH=${#TESTNEO_API_KEY}"
           echo "TEST_TAGS=[${{ github.event.inputs.test_tags || 'cicd' }}]"
-          echo "BUILD_VERSION=[${{ github.event.inputs.build_version }}]"
-          echo "RELEASE_NAME=[${{ github.event.inputs.release_name }}]"
+          echo "BUILD_VERSION=[${{ github.event.inputs.build_version || '' }}]"
+          echo "RELEASE_NAME=[${{ github.event.inputs.release_name || '' }}]"
 
       - name: Skip TestNeo Agent Download
         run: |
-          echo "Skipping agent download because TestNeo endpoint returns 401 Unauthorized"
+          echo "Skipping TestNeo agent download because endpoint returns 401 Unauthorized"
 
       - name: Simulate TestNeo Trigger
         run: |
-          echo "TestNeo trigger stage reached successfully"
+          echo "Pipeline reached trigger stage successfully"
           echo "Branch: ${{ github.ref_name }}"
           echo "Tags: ${{ github.event.inputs.test_tags || 'cicd' }}"
 
