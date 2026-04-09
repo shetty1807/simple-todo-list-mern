@@ -89,7 +89,7 @@ jobs:
           echo "PROJECT_ID=$TESTNEO_PROJECT_ID"
           echo "API_KEY_LENGTH=${#TESTNEO_API_KEY}"
 
-          - name: Trigger TestNeo CI job
+               - name: Trigger TestNeo CI job
         id: trigger
         shell: bash
         run: |
