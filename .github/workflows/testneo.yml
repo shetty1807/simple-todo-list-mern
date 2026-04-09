@@ -65,8 +65,9 @@ jobs:
           echo "TAGS=[$TESTNEO_TAGS]"
           echo "WORKERS=[$TESTNEO_WORKERS]"
 
-      - name: Download TestNeo Agent & Engine Bundle
+      - name: Skip TestNeo Agent Download (Temporary Fix)
         run: |
+         echo "Skipping TestNeo agent download due to 401 issue"
           set -e
 
           echo "Trying download with X-API-Key header..."
