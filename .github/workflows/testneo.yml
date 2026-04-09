@@ -1,4 +1,4 @@
-name: TestNeo CI
+name: TestNeo ci
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.9
         uses: actions/setup-python@v5
         with:
           python-version: "3.9"
@@ -55,7 +55,7 @@ jobs:
             exit 1
           fi
 
-          echo "All required secrets exist."
+          echo "All required secrets are present."
 
       - name: Debug values
         run: |
@@ -67,20 +67,45 @@ jobs:
 
       - name: Download TestNeo Agent & Engine Bundle
         run: |
-          echo "Downloading TestNeo bundle..."
-          curl -fL \
+          set -e
+
+          echo "Trying download with X-API-Key header..."
+          if curl -sS -fL \
             -H "X-API-Key: $TESTNEO_API_KEY" \
             "$TESTNEO_SERVER/api/web/v1/agents/download-bundle?project_id=$TESTNEO_PROJECT_ID" \
-            -o testneo_bundle.zip
+            -o testneo_bundle.zip; then
+            echo "Download succeeded with X-API-Key header."
+            exit 0
+          fi
+
+          echo "X-API-Key header failed. Trying Bearer token..."
+          if curl -sS -fL \
+            -H "Authorization: Bearer $TESTNEO_API_KEY" \
+            "$TESTNEO_SERVER/api/web/v1/agents/download-bundle?project_id=$TESTNEO_PROJECT_ID" \
+            -o testneo_bundle.zip; then
+            echo "Download succeeded with Bearer token."
+            exit 0
+          fi
+
+          echo "Bearer token failed. Trying api_key in URL..."
+          if curl -sS -fL \
+            "$TESTNEO_SERVER/api/web/v1/agents/download-bundle?project_id=$TESTNEO_PROJECT_ID&api_key=$TESTNEO_API_KEY" \
+            -o testneo_bundle.zip; then
+            echo "Download succeeded with api_key in URL."
+            exit 0
+          fi
+
+          echo "ERROR: All download authentication methods failed."
+          exit 1
 
       - name: Extract TestNeo Bundle
         run: |
           unzip -o testneo_bundle.zip -d testneo_bundle
           echo "Bundle extracted successfully."
+          ls -la
           ls -la testneo_bundle || true
 
       - name: Build tags JSON
-        id: tags
         run: |
           if [ -n "$TESTNEO_TAGS" ]; then
             TAGS_JSON=$(python -c "import json; print(json.dumps([x.strip() for x in '$TESTNEO_TAGS'.split(',') if x.strip()]))")
@@ -88,14 +113,14 @@ jobs:
             TAGS_JSON="[]"
           fi
 
-          echo "TAGS_JSON=$TAGS_JSON" >> $GITHUB_ENV
+          echo "TAGS_JSON=$TAGS_JSON" >> "$GITHUB_ENV"
           echo "Generated tags JSON: $TAGS_JSON"
 
       - name: Trigger TestNeo CI Job
         run: |
           echo "Triggering TestNeo CI job..."
 
-          curl -fL -X POST \
+          curl -sS -fL -X POST \
             -H "Content-Type: application/json" \
             -H "X-API-Key: $TESTNEO_API_KEY" \
             "$TESTNEO_SERVER/api/web/v1/ci/trigger" \
@@ -108,10 +133,12 @@ jobs:
               \"triggered_by\": \"github_actions\"
             }"
 
+          echo "Trigger request sent successfully."
+
       - name: Run TestNeo Tests
         run: |
-          echo "If your downloaded bundle contains runner files, update this step as needed."
-          echo "Current workflow completed trigger successfully."
+          echo "TestNeo trigger completed."
+          echo "Add project-specific test runner commands here if needed."
 
       - name: Check Results
         run: |
