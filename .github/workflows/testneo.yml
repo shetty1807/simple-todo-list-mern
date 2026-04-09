@@ -108,11 +108,11 @@ jobs:
           else
             echo "TESTNEO_PROJECT_ID is present"
           fi
-      - name: Download TestNeo Agent & Engine Bundle
-        env:
+          - name: Skip TestNeo Agent Download
+         env:
           TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
           TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
-        run: |
+         run: |
           echo ":inbox_tray: Downloading TestNeo agent from server..."
 
           curl -f -H "X-API-Key: $TESTNEO_API_KEY" \
