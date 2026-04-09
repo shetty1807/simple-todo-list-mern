@@ -94,6 +94,11 @@ jobs:
           echo "PROJECT_ID=$TESTNEO_PROJECT_ID"
           echo "API_KEY_LENGTH=${#TESTNEO_API_KEY}"
 
+          if [ -n "$TESTNEO_API_KEY" ]; then
+            echo "API_KEY_PREFIX=${TESTNEO_API_KEY:0:4}"
+            echo "API_KEY_SUFFIX=${TESTNEO_API_KEY: -4}"
+          fi
+
       - name: Trigger TestNeo CI job
         id: trigger
         shell: bash
