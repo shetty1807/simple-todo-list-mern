@@ -119,6 +119,7 @@ jobs:
           print(json.dumps(body))
           PY
           )
+          # debug change
 
           echo "Sending JSON:"
           echo "$JSON_BODY"
