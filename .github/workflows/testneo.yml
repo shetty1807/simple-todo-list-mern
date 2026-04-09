@@ -43,19 +43,23 @@ jobs:
           python-version: "3.11"
 
       - name: Validate required secrets
+        shell: bash
         run: |
           if [ -z "$TESTNEO_SERVER" ]; then
             echo "TESTNEO_SERVER missing"
             exit 1
           fi
+
           if [ -z "$TESTNEO_API_KEY" ]; then
             echo "TESTNEO_API_KEY missing"
             exit 1
           fi
+
           if [ -z "$TESTNEO_PROJECT_ID" ]; then
             echo "TESTNEO_PROJECT_ID missing"
             exit 1
           fi
+
           echo "All secrets present"
 
       - name: Prepare inputs
@@ -84,12 +88,13 @@ jobs:
           echo "workers=$WORKERS_INPUT" >> "$GITHUB_OUTPUT"
 
       - name: Debug secret values
+        shell: bash
         run: |
           echo "SERVER=$TESTNEO_SERVER"
           echo "PROJECT_ID=$TESTNEO_PROJECT_ID"
           echo "API_KEY_LENGTH=${#TESTNEO_API_KEY}"
 
-               - name: Trigger TestNeo CI job
+      - name: Trigger TestNeo CI job
         id: trigger
         shell: bash
         run: |
@@ -97,15 +102,17 @@ jobs:
 
           TAGS='${{ steps.prep.outputs.tags_json }}'
 
-          JSON_BODY=$(cat <<EOF
-          {
-            "project_id": $TESTNEO_PROJECT_ID,
-            "tags": $TAGS,
-            "branch": "${{ github.ref_name }}",
-            "commit_sha": "${{ github.sha }}",
-            "triggered_by": "github_actions"
+          JSON_BODY=$(python3 - <<PY
+          import json
+          body = {
+              "project_id": int("$TESTNEO_PROJECT_ID"),
+              "tags": None if """$TAGS""" == "null" else json.loads("""$TAGS"""),
+              "branch": "${{ github.ref_name }}",
+              "commit_sha": "${{ github.sha }}",
+              "triggered_by": "github_actions"
           }
-          EOF
+          print(json.dumps(body))
+          PY
           )
 
           echo "Sending JSON:"
@@ -128,8 +135,8 @@ jobs:
             exit 1
           fi
 
-          JOB_ID=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")
-          TOTAL=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin)['total_tests'])")
+          JOB_ID=$(echo "$BODY" | python3 -c "import sys, json; print(json.load(sys.stdin)['job_id'])")
+          TOTAL=$(echo "$BODY" | python3 -c "import sys, json; print(json.load(sys.stdin)['total_tests'])")
 
           echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
           echo "total_tests=$TOTAL" >> "$GITHUB_OUTPUT"
@@ -137,6 +144,7 @@ jobs:
           echo "Job $JOB_ID created"
 
       - name: Run TestNeo tests in Docker
+        shell: bash
         run: |
           docker run --rm --shm-size=2g \
             -e TESTNEO_SERVER="$TESTNEO_SERVER" \
@@ -147,6 +155,7 @@ jobs:
 
       - name: Summary
         if: always()
+        shell: bash
         run: |
           echo "Workflow finished"
           echo "Job ID: ${{ steps.trigger.outputs.job_id }}"
