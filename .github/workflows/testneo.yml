@@ -11,11 +11,11 @@ on:
   workflow_dispatch:
     inputs:
       tags:
-        description: "Test tags to run (comma-separated, e.g. smoke,login)"
+        description: "Test tags (comma-separated)"
         required: false
         default: ""
       workers:
-        description: "Parallel workers (default 3, max 10)"
+        description: "Parallel workers"
         required: false
         default: "3"
 
@@ -45,21 +45,18 @@ jobs:
       - name: Validate required secrets
         run: |
           if [ -z "$TESTNEO_SERVER" ]; then
-            echo "TESTNEO_SERVER is missing"
+            echo "TESTNEO_SERVER missing"
             exit 1
           fi
-
           if [ -z "$TESTNEO_API_KEY" ]; then
-            echo "TESTNEO_API_KEY is missing"
+            echo "TESTNEO_API_KEY missing"
             exit 1
           fi
-
           if [ -z "$TESTNEO_PROJECT_ID" ]; then
-            echo "TESTNEO_PROJECT_ID is missing"
+            echo "TESTNEO_PROJECT_ID missing"
             exit 1
           fi
-
-          echo "All required secrets are present"
+          echo "All secrets present"
 
       - name: Prepare inputs
         id: prep
@@ -85,6 +82,12 @@ jobs:
 
           echo "tags_json=$TAGS_JSON" >> "$GITHUB_OUTPUT"
           echo "workers=$WORKERS_INPUT" >> "$GITHUB_OUTPUT"
+
+      - name: Debug secret values
+        run: |
+          echo "SERVER=$TESTNEO_SERVER"
+          echo "PROJECT_ID=$TESTNEO_PROJECT_ID"
+          echo "API_KEY_LENGTH=${#TESTNEO_API_KEY}"
 
       - name: Trigger TestNeo CI job
         id: trigger
@@ -121,13 +124,11 @@ jobs:
           echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
           echo "total_tests=$TOTAL" >> "$GITHUB_OUTPUT"
 
-          echo "Job $JOB_ID created successfully"
+          echo "Job $JOB_ID created"
           echo "$TOTAL tests queued"
 
       - name: Run TestNeo tests in Docker
-        shell: bash
         run: |
-          echo "Running TestNeo tests..."
           docker run --rm --shm-size=2g \
             -e TESTNEO_SERVER="$TESTNEO_SERVER" \
             -e TESTNEO_API_KEY="$TESTNEO_API_KEY" \
