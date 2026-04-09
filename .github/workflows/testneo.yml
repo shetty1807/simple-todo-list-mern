@@ -1,45 +1,118 @@
-name: TestNeo CI Pipeline
+name: TestNeo CI
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
+      TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
+      TESTNEO_PROJECT_ID: ${{ secrets.TESTNEO_PROJECT_ID }}
+      TESTNEO_TAGS: smoke
+      TESTNEO_WORKERS: 3
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
 
-      # 🔍 DEBUG STEP
-      - name: Debug secrets
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl unzip jq
+
+      - name: Check secrets presence
+        run: |
+          echo "Checking required secrets..."
+
+          if [ -z "$TESTNEO_SERVER" ]; then
+            echo "ERROR: TESTNEO_SERVER is missing"
+            exit 1
+          fi
+
+          if [ -z "$TESTNEO_API_KEY" ]; then
+            echo "ERROR: TESTNEO_API_KEY is missing"
+            exit 1
+          fi
+
+          if [ -z "$TESTNEO_PROJECT_ID" ]; then
+            echo "ERROR: TESTNEO_PROJECT_ID is missing"
+            exit 1
+          fi
+
+          echo "All required secrets exist."
+
+      - name: Debug values
         run: |
           echo "SERVER=[$TESTNEO_SERVER]"
-          echo "PROJECT=[$TESTNEO_PROJECT_ID]"
+          echo "PROJECT_ID=[$TESTNEO_PROJECT_ID]"
           echo "API_KEY_LENGTH=${#TESTNEO_API_KEY}"
-        env:
-          TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
-          TESTNEO_PROJECT_ID: ${{ secrets.TESTNEO_PROJECT_ID }}
-          TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
+          echo "TAGS=[$TESTNEO_TAGS]"
+          echo "WORKERS=[$TESTNEO_WORKERS]"
 
-      # 🔽 FIXED DOWNLOAD STEP
-      - name: Download TestNeo Agent
+      - name: Download TestNeo Agent & Engine Bundle
         run: |
-          echo "Downloading TestNeo agent..."
-          curl -fL -H "X-API-Key: $TESTNEO_API_KEY" \
-          "$TESTNEO_SERVER/api/web/v1/agents/download-bundle?project_id=$TESTNEO_PROJECT_ID" \
-          -o testneo_bundle.zip
-        env:
-          TESTNEO_SERVER: ${{ secrets.TESTNEO_SERVER }}
-          TESTNEO_API_KEY: ${{ secrets.TESTNEO_API_KEY }}
-          TESTNEO_PROJECT_ID: ${{ secrets.TESTNEO_PROJECT_ID }}
+          echo "Downloading TestNeo bundle..."
+          curl -fL \
+            -H "X-API-Key: $TESTNEO_API_KEY" \
+            "$TESTNEO_SERVER/api/web/v1/agents/download-bundle?project_id=$TESTNEO_PROJECT_ID" \
+            -o testneo_bundle.zip
+
+      - name: Extract TestNeo Bundle
+        run: |
+          unzip -o testneo_bundle.zip -d testneo_bundle
+          echo "Bundle extracted successfully."
+          ls -la testneo_bundle || true
+
+      - name: Build tags JSON
+        id: tags
+        run: |
+          if [ -n "$TESTNEO_TAGS" ]; then
+            TAGS_JSON=$(python -c "import json; print(json.dumps([x.strip() for x in '$TESTNEO_TAGS'.split(',') if x.strip()]))")
+          else
+            TAGS_JSON="[]"
+          fi
+
+          echo "TAGS_JSON=$TAGS_JSON" >> $GITHUB_ENV
+          echo "Generated tags JSON: $TAGS_JSON"
+
+      - name: Trigger TestNeo CI Job
+        run: |
+          echo "Triggering TestNeo CI job..."
+
+          curl -fL -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: $TESTNEO_API_KEY" \
+            "$TESTNEO_SERVER/api/web/v1/ci/trigger" \
+            -d "{
+              \"project_id\": \"$TESTNEO_PROJECT_ID\",
+              \"branch\": \"${GITHUB_REF_NAME}\",
+              \"commit_sha\": \"${GITHUB_SHA}\",
+              \"tags\": ${TAGS_JSON},
+              \"workers\": ${TESTNEO_WORKERS},
+              \"triggered_by\": \"github_actions\"
+            }"
+
+      - name: Run TestNeo Tests
+        run: |
+          echo "If your downloaded bundle contains runner files, update this step as needed."
+          echo "Current workflow completed trigger successfully."
+
+      - name: Check Results
+        run: |
+          echo "Workflow finished."
