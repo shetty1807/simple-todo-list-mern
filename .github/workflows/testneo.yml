@@ -5,6 +5,19 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      test_tags:
+        description: 'Test tags'
+        required: false
+        default: 'cicd'
+      build_version:
+        description: 'Build number/version'
+        required: false
+        default: ''
+      release_name:
+        description: 'Release name'
+        required: false
+        default: ''
 
 jobs:
   test:
@@ -33,15 +46,20 @@ jobs:
           echo "SERVER=[$TESTNEO_SERVER]"
           echo "PROJECT_ID=[$TESTNEO_PROJECT_ID]"
           echo "API_KEY_LENGTH=${#TESTNEO_API_KEY}"
+          echo "TEST_TAGS=[${{ github.event.inputs.test_tags || 'cicd' }}]"
+          echo "BUILD_VERSION=[${{ github.event.inputs.build_version }}]"
+          echo "RELEASE_NAME=[${{ github.event.inputs.release_name }}]"
 
       - name: Skip TestNeo Agent Download
         run: |
-          echo "Skipping agent download because endpoint returns 401 Unauthorized"
+          echo "Skipping agent download because TestNeo endpoint returns 401 Unauthorized"
 
-      - name: Trigger TestNeo CI Job
+      - name: Simulate TestNeo Trigger
         run: |
-          echo "Pipeline reached trigger stage successfully"
+          echo "TestNeo trigger stage reached successfully"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Tags: ${{ github.event.inputs.test_tags || 'cicd' }}"
 
       - name: Finish
         run: |
-          echo "Workflow completed"
+          echo "Workflow completed successfully"
